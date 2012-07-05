@@ -3,7 +3,7 @@ module SessionsHelper
     cookies.permanent[:remember_token] = user.remember_token
     self.current_user = user
   end
-  
+  # return true if user is signed in
   def signed_in?
     !current_user.nil?
   end
@@ -18,6 +18,13 @@ module SessionsHelper
   
   def current_user?(user)
     user == current_user
+  end
+  
+  def signed_in_user
+    unless signed_in?
+      store_location
+      redirect_to signin_path, notice: "Please sign in."
+    end
   end
   
   def sign_out
