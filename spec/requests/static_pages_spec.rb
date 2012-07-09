@@ -20,17 +20,60 @@ describe "Static pages" do
     
     describe "for signed-in users" do
       let(:user) { FactoryGirl.create(:user) }
+      let(:other_user) { FactoryGirl.create(:user) }
+      
       before do
+         FactoryGirl.create(:micropost, user: user, content: "Lorem ipsums") 
+         sign_in user
+         visit root_path
+      end
+      
+      it "should render properly pluralized micropost count when 1 micropost" do
+        page.should have_content("1 micropost") 
+      end
+      
+    #  it "should be able to delete only own microposts" do
+    #    
+    #    FactoryGirl.create(:micropost, user: other_user, content: "Lorem ipsums")
+    #    visit root_path
+    #    get :li, :id => other_user
+    #    response.should_not have_selector("a", :content => "delete")
+    #  end 
+      
+      it "should render properly pluralized micropost count when more than one microposts" do
         FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum")
         FactoryGirl.create(:micropost, user: user, content: "Dolor sit amet")
-        sign_in user
         visit root_path
+        page.should have_content(" microposts") 
       end
-
+      
+      it "should have proper pagination if micropost count is over 30" do
+        31.times do
+          FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum")
+        end
+        visit root_path
+        page.should have_content(" microposts")
+        page.should have_content("Next")
+        click_link "Next"
+        page.should have_content("Previous")
+        click_link "Previous"
+      end
+      
       it "should render the user's feed" do
         user.feed.each do |item|
           page.should have_selector("li##{item.id}", text: item.content)
         end
+      end
+      
+      describe "follower/following counts" do
+        let(:other_user) { FactoryGirl.create(:user) }
+        before do
+          other_user.follow!(user)
+          visit root_path
+        end
+
+        it { should have_link("0 following", href: following_user_path(user)) }
+        it { should have_link("1 followers", href: followers_user_path(user)) }
       end
     end
     
